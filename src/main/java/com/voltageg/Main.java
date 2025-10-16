@@ -57,27 +57,43 @@ public class Main {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        writeRegistries(5,new int[]{1,2,3,4,5});
     }
 
     private static void mainLoop() {
         int[] registers = readRegisters(5);
-        for (int i : registers) {
-            i++;
-            if (i>65535) i = 0;
+        for (int j = 0; j < registers.length; j++) {
+            int i = registers[j];
+            i = i + 1;
+            if (i > 65535) i = 0;
+            registers[j] = i;
         }
-        writeRegistries(registers);
+        writeRegistries(5,registers);
 
     }
 
-    private static WriteMultipleRegistersResponse writeRegistries(int[] data) {
-        return modbusServices
-                .writeMultipleRegisters(null, 1, new WriteMultipleRegistersRequest(0, 5));
+    private static void writeRegistries(int quantity,int[] data) {
+        byte[] toWrite = new byte[quantity*2];
+        for (int i = 0,i1 = 0; i < quantity*2; i=i+2,i1++) {
+            int b = data[i1];
+            int v = b/256;
+            int v1 = b%256;
+            toWrite[i] = (byte) (v-256);
+            toWrite[i+1] = (byte) (v1-256);
+        }
+        try {
+            modbusServices.writeMultipleRegisters(null, 1,
+                            new WriteMultipleRegistersRequest(0, quantity,toWrite));
+        } catch (UnknownUnitIdException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static int[] readRegisters(int quantity) {
         ReadHoldingRegistersResponse response;
         try {
-            response = modbusServices.readHoldingRegisters(null, 1, new ReadHoldingRegistersRequest(0, quantity));
+            response = modbusServices.readHoldingRegisters(null, 1,
+                    new ReadHoldingRegistersRequest(0, quantity));
         } catch (UnknownUnitIdException e) {
             throw new RuntimeException(e);
         }
